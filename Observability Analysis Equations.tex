@@ -1,0 +1,444 @@
+\documentclass[]{article}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage{lscape}
+\usepackage[dvipsnames]{xcolor}
+\usepackage[letterpaper, portrait, margin=1.5in]{geometry}
+%opening
+\title{Nonlinear Observability Analysis of Quadrotor Using IMU and Range Measurements}
+\author{Eranga Fernando}
+
+\begin{document}
+
+\maketitle
+\section{Model 1 : Without Biases (Quaternion)}
+\subsection{Model}
+\begin{itemize}
+	\item \textbf{States}
+	\begin{equation*}
+		X = [\underbrace{x,\ y,\ z,}_{\bm{p}}\ \underbrace{v_x,\ v_y, v_z,}_{\bm{v_b}}\ \underbrace{q_x,\ q_y,\ q_z,\ q_w,}_{\bm{q}}\ T]
+	\end{equation*}
+	\item \textbf{Process Model}
+	\begin{multline*}
+		\dot{\bm{X}}\ =\ \underbrace{\begin{bmatrix}
+		Cv_b\\
+		-K\bm{v_b} -T\bm{e_3} + C^{T}\bm{g}\\
+		0_{4\times 1}\\
+		0
+		\end{bmatrix}}_{f_0}
+		\ +\ 
+		\underbrace{\begin{bmatrix}
+		0_{3\times 4}\\
+		0_{3\times 4}\\
+		\Omega\\
+		0
+		\end{bmatrix}}_{f_1}\omega
+		\ +\ 
+		\underbrace{\begin{bmatrix}
+		0_{3\times 1}\\
+		0_{3\times 1}\\
+		0_{4\times 1}\\
+		1
+		\end{bmatrix}}_{f_2}U_4
+	\end{multline*}
+	\item \textbf{Measurement Model}\\
+	Drag coefficient matrix is expressed as mass and propeller velocity normalized. Thrust is also mass normalized. 
+	\begin{equation*}
+		h = \begin{bmatrix}
+		-K\bm{v_b} - T\bm{e_3}\\
+		\frac{1}{2}\lvert\lvert \bm{r_1} \rvert\rvert^2\\
+		\frac{1}{2}\lvert\lvert \bm{r_2} \rvert\rvert^2\\
+		\frac{1}{2}\lvert\lvert \bm{r_3} \rvert\rvert^2
+		\end{bmatrix}
+	\end{equation*}
+	where
+	\begin{equation*}
+	\bm{r_i} =  \bm{p}-\bm{p_i}
+	\end{equation*}\\
+	$\bm{p_i}$ is the position of the $i^\mathrm{th}$ beacon
+\end{itemize}
+
+\subsection{Scenarios}
+\subsubsection{General Lie Derivatives}
+\begin{equation*}
+\mathcal{L}^0h = h
+\end{equation*}
+
+\begin{equation*}
+\nabla\mathcal{L}^0h = \begin{bmatrix}
+0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+\bm{R}_i & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+\end{bmatrix}_{(3+i)\times 11}
+\end{equation*}
+
+\begin{equation*}
+\bm{R}_i = [\bm{r_1},\ ..., \bm{r_i}]^T : i = 1,2,3
+\end{equation*}
+
+\begin{equation*}
+\nabla\mathcal{L}^1_{f_0}h = \begin{bmatrix}
+0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+\bm{V}_i C^T & \bm{R}_iC & \bm{R}_i\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+\end{bmatrix}_{(3+i)\times 11}
+\end{equation*}
+
+\begin{equation*}
+\bm{V}_i = [\bm{v_b},\ ..., \bm{v_b}]^T \in \mathbb{R}^{i\times 3}
+\end{equation*}
+
+\begin{equation*}
+\nabla\mathcal{L}^2_{f_0f_0}h = \begin{bmatrix}
+0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+\bm{\dot{V}}_{\bm{b}_i} C^T & 2\bm{V}_i - \bm{R}_iCK & \bm{R}_i\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R}_iCe_3\\
+\end{bmatrix}_{(3+i)\times 11}
+\end{equation*}
+
+\begin{equation*}
+\bm{\dot{V}}_{\bm{b}_i} = [\bm{\dot{v}_b},\ ..., \bm{\dot{v}_b}]^T \in \mathbb{R}^{i\times 3}
+\end{equation*}
+\subsubsection{3 Range Measurements upto first order Lie derivatives}
+\begin{itemize}
+	\item \textbf{Observability Condition} : $\mathcal{O}_{3R}$ is full rank
+	\begin{equation*}
+		\mathcal{O}_{3R} = [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h]
+	\end{equation*}
+		
+	\item \textbf{Observability Matrix}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_3} C^T & R_3C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	\end{bmatrix}
+	\end{align*}
+	
+	\item \textbf{Gaussian Elimination}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_3} C^T & \bm{R_3}C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	\end{bmatrix}\\
+	\\
+	R_2&\leftarrow \bm{R_3}^{-1}\times R_2\\	R_3&\leftarrow K^{-1}\times R_3 + R_1\\
+	R_4&\leftarrow R_4 - \bm{V_3}C^T\times R_2\\
+	R_1&\leftarrow -K^{-1}\times R_1\\
+	R_4&\leftarrow \bm{R_3}^{-1}\times R_4\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& -\nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & C & \nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	\end{bmatrix}\\
+	\\
+	R_4&\leftarrow R_4 - C\times R_1\\
+	R_3&\leftarrow -R_3 \\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & 0_{3\times 3} & \nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\\
+	C_{11}&\leftarrow C_{11} - K^{-1}C_6\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& 0_{3\times 1}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & 0_{3\times 3} & \nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\\
+	\mathcal{O}_{3R_1} &= \mathcal{O}_{3R}(7:12,7:11)\\
+	\\
+		&= \begin{bmatrix}
+			\nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+			\nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+		\end{bmatrix}
+	\end{align*}
+	
+		\item \textbf{Observability Conditions:}
+		\begin{itemize}
+			\item $K$ must be full rank
+			\item $\bm{R_3}$ must be full rank. i.e. quadrotor cannot lie on the line between any two anchors. System become rank deficient when following conditions satisfied
+			\begin{itemize}
+				\item $\bm{v_b} = 0$
+				\item $C\bm{v_b} = k\bm{g}$
+			\end{itemize}
+			\item $\bm{R_3}$ is not full rank. i.e. quadrotor lies on the line between any two anchors ($\bm{r_i} = k\bm{r_j}$) or the quadrotor and three anchors are on the same line ($\bm{r_1} = k\bm{r_2} = l\bm{r_3}$). For the following conditions the system is rank deficient
+			\begin{itemize}
+				\item \textcolor{red}{If the quadrotor is in the middle of the two beacons i.e. $\bm{r_i} = -\bm{r_j}$} : This is will not happen. The rank become deficient only if $k = 1$. But under the assumptions that we have made, this cannot happen.
+				\item Quadrotor moves towards a beacon i.e. $C\bm{v_b} = k\bm{r_i}$ 
+				\item Quadrotor velocity is zero. i.e.$\bm{v_b} =0$
+				\item \item $C\bm{v_b} = k\bm{g}$
+			\end{itemize}
+		\end{itemize}
+
+\end{itemize}
+\pagebreak
+\subsubsection{3 Range Measurements upto second order Lie derivatives}
+\begin{itemize}
+	\item \textbf{Observability Condition} : $\mathcal{O}_{3R}$ is full rank
+	\begin{equation*}
+	\mathcal{O}_{3R} = [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]
+	\end{equation*}
+	
+	\item \textbf{Observability Matrix}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_3} C^T & R_3C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 2\bm{V}_3 - \bm{R_3}CK & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R_3}Ce_3\\
+	\end{bmatrix}
+	\end{align*}
+	
+	\item \textbf{Gaussian Elimination}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_3} C^T & \bm{R_3}C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 2\bm{V}_3 - \bm{R_3}CK & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R_3}Ce_3\\
+	\end{bmatrix}\\
+	\\
+	R_2&\leftarrow \bm{R_3}^{-1}\times R_2\\
+	R_4&\leftarrow R_4 - \bm{V_3}C^T\times R_2\\
+	R_4&\leftarrow \bm{R_3}^{-1}\times R_4\\
+	R_5&\leftarrow R_5 + K\times R_3\\
+	R_3&\leftarrow R_3 + K\times R_1\\	
+	R_1&\leftarrow -K^{-1}\times R_1\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& -\nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & C & \nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	0_{3\times 3}& 	0_{3\times 3}& 	0_{3\times 4}& 	0_{3\times 1}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 2\bm{V}_3 - \bm{R_3}CK & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R_3}Ce_3\\
+	\end{bmatrix}\\
+	\\
+	R_4&\leftarrow R_4 - C\times R_1\\
+	R_3&\leftarrow -R_3 \\
+	R_6&\leftarrow R_6 - \bm{\dot{V}}_{\bm{b}_3}C^T \times R_2\\
+	R_6&\leftarrow R_6 - (2\bm{V}_3 - \bm{R_3}CK)\times R_1
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & 0_{3\times 3} & \nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+	0_{3\times 3}& 	0_{3\times 3}& 	0_{3\times 4}& 	0_{3\times 1}\\
+	0_{3\times 3}& 	0_{3\times 3}& \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -2\bm{V}_3K^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\\
+	R55&\leftarrow \bm{R_3}^{-1} \times R_6\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{I_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	0_{3\times 3} & 0_{3\times 3} & \nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+	0_{3\times 3}& 	0_{3\times 3}& 	0_{3\times 4}& 	0_{3\times 1}\\
+	0_{3\times 3}& 	0_{3\times 3}& \nabla_{\bm{q}} C\bm{\dot{v}_b} & -2\bm{R_3}^{-1}\bm{V}_3K^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\end{align*}
+	
+	\item \textbf{Observability Conditions:}
+	\begin{itemize}
+		\item $K$ must be full rank
+%		\item $\bm{R_3}$ must be full rank. i.e. quadrotor cannot lie on the line between any two anchors. System become rank deficient when following conditions satisfied
+%		\begin{itemize}
+%			\item $\bm{v_b} = 0$
+%			\item $C\bm{v_b} = k\bm{g}$
+%		\end{itemize}
+%		\item $\bm{R_3}$ is not full rank. i.e. quadrotor lies on the line between any two anchors ($\bm{r_i} = k\bm{r_j}$) or the quadrotor and three anchors are on the same line ($\bm{r_1} = k\bm{r_2} = l\bm{r_3}$). For the following conditions the system is rank deficient
+%		\begin{itemize}
+%			\item If the quadrotor is in the middle of the two beacons i.e. $\bm{r_i} = -\bm{r_j}$
+%			\item Quadrotor moves towards a beacon i.e. $C\bm{v_b} = k\bm{r_i}$ 
+%			\item Quadrotor velocity is zero. i.e.$\bm{v_b} =0$
+%			\item \item $C\bm{v_b} = k\bm{g}$
+%		\end{itemize}
+	\end{itemize}
+	\pagebreak
+	\item \textbf{If the quadrotor lies on a line connecting two range beacons}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_3} C^T & \bm{R_3}C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 2\bm{V}_3 - \bm{R_3}CK & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R_3}Ce_3\\
+	\end{bmatrix}\\
+	\\
+	R_3&\leftarrow R_3 + K\times R_1\\
+	R_3&\leftarrow -R_3\\
+	R_5&\leftarrow R_5 - K^2\times R_1\\
+	R_3&\leftarrow -K^{-1}\times R_1\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3} & \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{V_3} C^T & \bm{R_3}C & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 2\bm{V}_3 - \bm{R_3}CK & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R_3}Ce_3\\
+	\end{bmatrix}\\
+	\\
+	R_4&\leftarrow R_5 - R_3\\
+	R_4&\leftarrow R_4 - \bm{R_3}C\times R_1\\
+	R_6&\leftarrow R_6 - (2\bm{V}_3 - \bm{R_3}CK)\times R_1
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{3R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3}& 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{R_3} & 0_{3\times 3} & 0_{3\times 4} & 0_{3\times 1}\\
+	0_{3\times 3}& 0_{3\times 3} & \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{V_3} C^T & 0_{3\times 3} & \bm{R_3}\nabla_{\bm{q}} C\bm{v_b} & -CK^{-1}\bm{e_3}\\
+	0_{3\times 3}& 0_{3\times 3}& 0_{3\times 3}& 0_{3\times 1}\\
+	\bm{\dot{V}}_{\bm{b}_3} C^T & 0_{3\times 3} & \bm{R_3}\nabla_{\bm{q}} C\bm{\dot{v}_b} & -2\bm{V}_3K^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\end{align*}
+	
+	\item \textbf{Observability Conditions}
+\end{itemize}
+\pagebreak
+
+\subsubsection{2 Range Measurements}
+\begin{itemize}
+	\item \textbf{Observability Condition} : $\mathcal{O}_{2R}$ is full rank
+	\begin{equation*}
+		\mathcal{O}_{2R} = [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]
+	\end{equation*}
+	\item \textbf{Observability Matrix}
+	\begin{align*}
+	\mathcal{O}_{2R} &= [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_0}h]\\ 
+	&= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_2} & 0_{2\times 3} & 0_{2\times 4} & 0_{2\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_2} C^T & \bm{R_2}C & \bm{R_2}\nabla_{\bm{q}} C\bm{v_b} & 0_{2\times 1}\\
+	0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+	\bm{\dot{V}}_{\bm{b}_2} C^T & 2\bm{V}_2 - \bm{R}_2CK & \bm{R}_2\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R}_2C\bm{e_3}\\
+	\end{bmatrix}
+	\end{align*}
+	\item  \textbf{Gaussian Elimination}
+	\begin{align*}
+	\mathcal{O}_{2R} &= \begin{bmatrix}
+	0_{3\times 3}& -K& 0_{3\times 4}& -\bm{e_3}\\
+	\bm{R_2} & 0_{2\times 3} & 0_{2\times 4} & 0_{2\times 1}\\
+	0_{3\times 3}& K^2& -K\nabla_{\bm{q}} C^T\bm{g}& K\bm{e_3}\\
+	\bm{V_2} C^T & \bm{R_2}C & \bm{R_2}\nabla_{\bm{q}} C\bm{v_b} & 0_{2\times 1}\\
+	0_{3\times 3}& -K^3& K^2\nabla_{\bm{q}} C^T\bm{g}& -K^2\bm{e_3}\\
+	\bm{\dot{V}}_{\bm{b}_2} C^T & 2\bm{V}_2 - \bm{R}_2CK & \bm{R}_2\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R}_2C\bm{e_3}\\
+	\end{bmatrix}\\
+	\\
+%	R_4&\leftarrow \bm{R_3}^{-1}\times R_4\\
+	R_3 &\leftarrow K^{-1}R_3\\
+	R_3 &\leftarrow R_1 + R_3\\
+	R_5 &\leftarrow K^{-2}R_5\\
+	R_5 &\leftarrow R_5 - R_1\\
+	R_1&\leftarrow -K^{-1}\times R_1\\
+	\end{align*}
+	\begin{align*}
+	\mathcal{O}_{2R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3} & 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{R_2} & 0_{2\times 3} & 0_{2\times 4} & 0_{2\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& -\nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{V_2} C^T & \bm{R_2}C & \bm{R_2}\nabla_{\bm{q}} C\bm{v_b} & 0_{2\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{\dot{V}}_{\bm{b}_2} C^T & 2\bm{V}_2 - \bm{R}_2CK & \bm{R}_2\nabla_{\bm{q}} C\bm{\dot{v}_b} & -\bm{R}_2C\bm{e_3}\\
+	\end{bmatrix}\\
+	R_4 &\leftarrow R_4 - \bm{R_2}CR_1\\
+	R_6 &\leftarrow R_6 - (2\bm{V}_2 - \bm{R}_2CK)R_1\\
+	R_5 &\leftarrow R_5 + R_3\\
+	R_3 &\leftarrow -R_3
+	\end{align*}
+
+	\begin{align*}
+	\mathcal{O}_{2R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3} & 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	\bm{R_2} & 0_{2\times 3} & 0_{2\times 4} & 0_{2\times 1}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{V_2} C^T & 0_{2\times 3} & \bm{R_2}\nabla_{\bm{q}} C\bm{v_b} & -\bm{R_2}CK^{-1}\bm{e3}\\
+	0_{3\times 3}& 0_{3\times 3}& 0_{3\times 3}& 0_{3\times 1}\\
+	\bm{\dot{V}}_{\bm{b}_2} C^T & 0_{2\times 3} & \bm{R}_2\nabla_{\bm{q}} C\bm{\dot{v}_b} & -2\bm{V}_2K^{-1}\bm{e_3}\\
+	\end{bmatrix}\\
+	\\
+	R_2 &\rightleftarrows R_3\\
+	R_4 &\rightleftarrows R_5\\
+	\end{align*}
+	
+	\begin{align*}
+	\mathcal{O}_{2R} &= \begin{bmatrix}
+	0_{3\times 3}& \bm{I_3} & 0_{3\times 4}& K^{-1}\bm{e_3}\\
+	0_{3\times 3}& 0_{3\times 3}& \nabla_{\bm{q}} C^T\bm{g}& 0_{3\times 1}\\
+	\bm{R_2} & 0_{2\times 3} & 0_{2\times 4} & 0_{2\times 1}\\
+	\bm{V_2} C^T & 0_{2\times 3} & \bm{R_2}\nabla_{\bm{q}} C\bm{v_b} & -\bm{R_2}CK^{-1}\bm{e3}\\
+	\bm{\dot{V}}_{\bm{b}_2} C^T & 0_{2\times 3} & \bm{R}_2\nabla_{\bm{q}} C\bm{\dot{v}_b} & -2\bm{V}_2K^{-1}\bm{e_3}\\
+	0_{3\times 3}& 0_{3\times 3}& 0_{3\times 3}& 0_{3\times 1}\\
+	\end{bmatrix}\\
+	\end{align*}
+	\item \textbf{Observability conditions}
+	\begin{itemize}
+		\item If the quadrotor does not lie on the same line connecting the two beacons. For following scenarios the system become rank deficient.
+		\begin{itemize}
+			\item Quadrotor velocity and acceleration in the world frame is towards a beacon. i.e $C\bm{v_b} = k_1 \bm{r_i}$ and  $C\bm{\dot{v}_b} = k_1 \bm{r_j}$.
+			\item Quadrotor velocity is zero and acceleration is towards a beacons. i.e. $\bm{v_b} = 0$ and $C\bm{\dot{v}_b} = k_1 \bm{r_i}$
+			\item Quadrotor acceleration is zero and velocity in the world frame is towards a beacon $\bm{\dot{v}_b} = 0$ and $C\bm{v_b} = k_1 \bm{r_i}$
+			\item Quadrotor is stationary and acceleration is zero.  $\bm{\dot{v}_b} = 0$ and $C\bm{v_b} = 0$
+		\end{itemize}
+		\item If the quadrotor lies on the same line as the beacons ($\bm{r_1} = k\bm{r_2}$). For following scenarios the system become rank deficient.
+		\begin{itemize}
+			\item If quadrotor is in the middle of the two beacons. i.e.$k = -1$
+			\item Quadrotor is stationary, $\bm{v_b} = 0$
+			\item Quadrotor moves toward a beacon,  $C\bm{v_b} = k_1\bm{r_i}$
+			\item Quadrotor has no acceleration, $\bm{\dot{v}_b} = 0$
+			\item Quadrotor accelerates towards a beacon, $C\bm{\dot{v}_b} = k_1 \bm{r_i}$
+		\end{itemize}
+	\end{itemize}
+	
+\end{itemize}
+
+\subsubsection{1 Range Measurement}
+\begin{itemize}
+	\item \textbf{Observability Condition} : $\mathcal{O}_{1R}$ is full rank
+	
+	\begin{equation*}
+		\mathcal{O}_{1R} = [\nabla\mathcal{L}^0h;\nabla\mathcal{L}^1_{f_0}h;\nabla\mathcal{L}^2_{f_0f_1}h] 
+	\end{equation*}
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+\end{document}
